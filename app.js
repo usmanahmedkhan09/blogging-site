@@ -29,9 +29,13 @@ app.use((req, res, next) =>
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     next()
 })
+
 const feedRoutes = require('./routes/feed')
+const authRoutes = require('./routes/auth')
 
 app.use('/feed', feedRoutes)
+app.use('/auth', authRoutes)
+
 app.use((error, req, res, next) =>
 {
     return res.status(error.status ?? 500).json({ message: error.message })
