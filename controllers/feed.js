@@ -1,23 +1,72 @@
 const { validationResult } = require('express-validator')
-
+const mongoose = require('mongoose')
+const fs = require('fs')
+const path = require('path')
 const Post = require('../models/feed')
 
 exports.getPosts = (req, res, next) =>
 {
-    // res.status(200).send({
-    //     message: 'posts',
-    //     posts: [{
-    //         _id: new Date().toISOString(), title: 'learning core concept of js', content: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been'
-    //     }]
+    const currentPage = req.query.page ?? 1
+    const itemsPerPage = 2
+    let totalItems;
+
+    Post.find()
+        .countDocuments()
+        .then((count) =>
+        {
+            totalItems = count
+            return Post.find().skip((currentPage - 1) * itemsPerPage).limit(itemsPerPage)
+        }).then((posts) =>
+        {
+            return res.status(200).send({
+                message: 'Posts found successfully',
+                posts: posts,
+                totalItems: totalItems
+            })
+        })
+        .catch((error) =>
+        {
+            if (!err.status)
+            {
+                error.status = 500
+            }
+            next(err)
+        })
+
+
+    // Post.find().then((posts) =>
+    // {
+    //     if (!posts)
+    //     {
+    //         let error = new Error('Post not found')
+    //         error.status = 422
+    //         throw error
+    //     }
+
+    // }).catch(err =>
+    // {
+    //     if (!err.status)
+    //     {
+    //         error.status = 500
+    //     }
+    //     next(err)
     // })
+
 
 }
 
 exports.createPost = async (req, res, next) =>
 {
+    const image = req.file
+    if (!image)
+    {
+        let error = new Error('image is not attached.')
+        error.status = 422
+        throw error
+    }
     const title = req.body.title
     const content = req.body.content
-    const imageUrl = req.body.imageUrl
+    const imageUrl = image.path
     const errors = validationResult(req)
     if (!errors.isEmpty())
     {
@@ -46,4 +95,133 @@ exports.createPost = async (req, res, next) =>
         next(err)
     })
 
+}
+
+exports.getPostById = (req, res, next) =>
+{
+
+    const postId = req.params.id
+    Post.findById({ _id: postId.toString() }).then((post) =>
+    {
+        if (!post)
+        {
+            let error = new Error('Post not found.')
+            error.status = 422
+            throw error
+        }
+        return res.status(200).json({
+            message: 'Post found successfully',
+            post: post
+        })
+    }).catch((err) =>
+    {
+        if (!err.status)
+        {
+            err.status = 500
+        }
+        next(err)
+    })
+}
+
+exports.updatePost = (req, res, next) =>
+{
+    const postId = req.params.id
+    const errors = validationResult(req)
+    if (!errors.isEmpty())
+    {
+        let error = new Error('validation failed, data is in incorrect from.')
+        error.status = 422
+        throw error
+    }
+
+    const postTitle = req.body.title
+    const postContent = req.body.content
+    let imageUrl = req.body.image
+    if (req.file)
+    {
+        imageUrl = req.file.path
+    }
+
+    if (!imageUrl)
+    {
+        let error = new Error('Image not found.')
+        error.status = 422
+        throw error
+    }
+
+    Post.findById(postId).then((post) =>
+    {
+        post.title = postTitle,
+            post.content = postContent,
+            post.imageUrl = imageUrl
+        return post.save()
+
+    })
+        .then((result) =>
+        {
+            res.status(200).json({
+                message: 'Successfully updated',
+                post: result
+            })
+        })
+        .catch((err) =>
+        {
+            if (!err.status)
+            {
+                error.status = 500
+            }
+            next(err)
+        })
+
+}
+
+exports.deletePost = (req, res, next) =>
+{
+    const postId = req.params.id
+    const errors = validationResult(req)
+    if (!errors.isEmpty())
+    {
+        let error = new Error('Post id is not found')
+        error.status = 422
+        throw error
+    }
+
+    Post.findById(postId)
+        .then((post) =>
+        {
+            if (!post)
+            {
+                let error = new Error('Post not found')
+                error.status = 404
+                throw error
+            }
+            ulinkPostImage(post.imageUrl)
+            return Post.findByIdAndRemove(post._id)
+        }).then((result) =>
+        {
+
+        })
+        .catch((err) =>
+        {
+            if (!err.status)
+            {
+                err.status = 500
+            }
+            next(err)
+        })
+
+
+}
+
+
+const ulinkPostImage = (imagePath) =>
+{
+    imagePath = path.join(__dirname, '..', imagePath)
+    fs.unlink(imagePath, (err) =>    
+    {
+        if (err)
+        {
+            console.log(err)
+        }
+    })
 }
