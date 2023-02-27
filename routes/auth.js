@@ -11,20 +11,20 @@ router.post('/signup',
         body('email')
             .isEmail()
             .withMessage('Please enter a valid email.')
-            .customSanitizer(({ val: { req } }) =>
+            .custom((value, { req }) =>
             {
-                User.findOne({ email: val }).then((user) =>
+                console.log(req)
+                User.findOne({ email: value }).then((user) =>
                 {
                     if (user)
                     {
                         return new Promise.reject('E-mail already present.')
                     }
                 })
+                return true
             })
             .normalizeEmail(),
-        body('password')
-            .trim()
-            .isLength({ min: 8 }),
+        body('password').isLength({ min: 5 }),
         body('name')
             .not().isEmpty()
     ], authController.signUp

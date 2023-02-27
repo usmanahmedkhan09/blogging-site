@@ -38,11 +38,11 @@ app.use('/auth', authRoutes)
 
 app.use((error, req, res, next) =>
 {
-    return res.status(error.status ?? 500).json({ message: error.message })
+    return res.status(error.status ?? 500).json({ message: error.message, errorsData: error.data })
 })
 
 
-mongoose.connect('mongodb+srv://usmanahmed:usman123@cluster0.ozm2t4m.mongodb.net/blog-site').then(() =>
+mongoose.connect('mongodb+srv://usmanahmed:usman123@node-practice.ivqzeor.mongodb.net/blogger-site').then(() =>
 {
     console.log('connected')
     app.listen(3000)
