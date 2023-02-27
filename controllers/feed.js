@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const fs = require('fs')
 const path = require('path')
 const Post = require('../models/feed')
+const User = require('../models/user')
 
 exports.getPosts = (req, res, next) =>
 {
@@ -58,22 +59,40 @@ exports.createPost = async (req, res, next) =>
         title: title,
         imageUrl: imageUrl,
         content: content,
-        creator: { name: 'usman' },
+        creator: req.userId,
     })
+
+    let creator;
     post.save().then((result) =>
     {
-        return res.status(201).json({
-            message: 'Post Created Successfully',
-            post: result
-        })
-    }).catch((err) =>
-    {
-        if (!err.status)
-        {
-            error.status = 500
-        }
-        next(err)
+        return User.findById(req.userId)
     })
+        .then((user) =>
+        {
+            if (!user)
+            {
+                let error = new Error('user not found.')
+                error.status = 401
+                throw error
+            }
+            creator = user
+            user.posts.push(post)
+            return user.save()
+        }).then(() =>
+        {
+            return res.status(201).json({
+                message: 'Post Created Successfully',
+                post: post
+            })
+        })
+        .catch((err) =>
+        {
+            if (!err.status)
+            {
+                err.status = 500
+            }
+            next(err)
+        })
 
 }
 

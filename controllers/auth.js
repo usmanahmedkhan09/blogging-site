@@ -79,7 +79,6 @@ exports.signIn = (req, res, next) =>
 
             const token = jwt.sign({ email: loggedInUser.email, id: loggedInUser._id.toString() }, 'privateKey', { expiresIn: '1h' })
             loggedInUser.token = token
-            console.log(loggedInUser)
             res.status(201).json({ message: 'Successfully login', user: loggedInUser })
         })
         .catch((err) =>
