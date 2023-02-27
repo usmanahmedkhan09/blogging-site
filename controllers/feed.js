@@ -33,26 +33,6 @@ exports.getPosts = (req, res, next) =>
             next(err)
         })
 
-
-    // Post.find().then((posts) =>
-    // {
-    //     if (!posts)
-    //     {
-    //         let error = new Error('Post not found')
-    //         error.status = 422
-    //         throw error
-    //     }
-
-    // }).catch(err =>
-    // {
-    //     if (!err.status)
-    //     {
-    //         error.status = 500
-    //     }
-    //     next(err)
-    // })
-
-
 }
 
 exports.createPost = async (req, res, next) =>

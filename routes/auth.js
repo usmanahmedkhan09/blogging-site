@@ -31,4 +31,11 @@ router.post('/signup',
 
 )
 
+router.post('/login',
+    body('email')
+        .isEmail()
+        .withMessage('Please enter a valid email.')
+        .normalizeEmail(),
+    body('password').isLength({ min: 5 }),
+    authController.signIn)
 module.exports = router
