@@ -66,8 +66,10 @@ exports.createPost = (req, res, next) =>
     })
 
     let creator;
+    let incommingPost;
     post.save().then((result) =>
     {
+        incommingPost = result
         return User.findById(req.userId)
     })
         .then((user) =>
@@ -83,7 +85,7 @@ exports.createPost = (req, res, next) =>
             return user.save()
         }).then(() =>
         {
-            socket.getIO().emit('post', { action: 'create', post: creator.posts })
+            socket.getIO().emit('post', { action: 'create', post: { ...incommingPost._doc, creator: { _id: req.userId, name: creator.name } } })
             return res.status(201).json({
                 message: 'Post Created Successfully',
                 post: post
