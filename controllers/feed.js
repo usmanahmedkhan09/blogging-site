@@ -2,8 +2,11 @@ const { validationResult } = require('express-validator')
 const mongoose = require('mongoose')
 const fs = require('fs')
 const path = require('path')
+
+
 const Post = require('../models/feed')
 const User = require('../models/user')
+const socket = require('../socket')
 
 exports.getPosts = (req, res, next) =>
 {
@@ -27,7 +30,7 @@ exports.getPosts = (req, res, next) =>
         })
         .catch((error) =>
         {
-            if (!err.status)
+            if (!error.status)
             {
                 error.status = 500
             }
@@ -36,7 +39,7 @@ exports.getPosts = (req, res, next) =>
 
 }
 
-exports.createPost = async (req, res, next) =>
+exports.createPost = (req, res, next) =>
 {
     const image = req.file
     if (!image)
@@ -75,11 +78,12 @@ exports.createPost = async (req, res, next) =>
                 error.status = 401
                 throw error
             }
-            creator = user
             user.posts.push(post)
+            creator = user
             return user.save()
         }).then(() =>
         {
+            socket.getIO().emit('post', { action: 'create', post: creator.posts })
             return res.status(201).json({
                 message: 'Post Created Successfully',
                 post: post
@@ -150,6 +154,12 @@ exports.updatePost = (req, res, next) =>
 
     Post.findById(postId).then((post) =>
     {
+        if (post.creator.toString() != req.userId)
+        {
+            let error = new Error('Not Authorized')
+            error.status = 403
+            throw error
+        }
         post.title = postTitle,
             post.content = postContent,
             post.imageUrl = imageUrl
@@ -167,7 +177,7 @@ exports.updatePost = (req, res, next) =>
         {
             if (!err.status)
             {
-                error.status = 500
+                err.status = 500
             }
             next(err)
         })
@@ -185,6 +195,7 @@ exports.deletePost = (req, res, next) =>
         throw error
     }
 
+    let deletedPost;
     Post.findById(postId)
         .then((post) =>
         {
@@ -194,11 +205,27 @@ exports.deletePost = (req, res, next) =>
                 error.status = 404
                 throw error
             }
+            if (post.creator.toString() != req.userId)
+            {
+                let error = new Error('Not Authorized')
+                error.status = 403
+                throw error
+            }
+            deletedPost = post
             ulinkPostImage(post.imageUrl)
             return Post.findByIdAndRemove(post._id)
         }).then((result) =>
         {
-
+            return User.findById(req.userId)
+        })
+        .then((user) =>
+        {
+            user.posts.pull(postId)
+            return user.save()
+        })
+        .then(() =>
+        {
+            res.status(200).json({ message: 'Successfully deleted', post: deletedPost })
         })
         .catch((err) =>
         {

@@ -42,8 +42,15 @@ app.use((error, req, res, next) =>
 })
 
 
-mongoose.connect('mongodb+srv://usmanahmed:usman123@node-practice.ivqzeor.mongodb.net/blogger-site').then(() =>
-{
-    console.log('connected')
-    app.listen(3000)
-}).catch((err) => console.log(err))
+mongoose
+    .connect('mongodb+srv://usmanahmed:usman123@node-practice.ivqzeor.mongodb.net/blogger-site')
+    .then(() =>
+    {
+        console.log('connected')
+        const server = app.listen(8080)
+        const io = require('./socket').init(server)
+        io.on('connection', (socket) =>
+        {
+            console.log('connection established')
+        })
+    }).catch((err) => console.log(err))
